@@ -1,0 +1,44 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+    sam-app
+
+    Sample SAM Template for sam-app
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+    Function:
+        Timeout: 3
+
+
+Resources:
+
+    AwsLibrarianFunction:
+        Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+        Properties:
+            CodeUri: aws_librarian/
+            Handler: app.lambda_handler
+            Runtime: python3.6
+            Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+                Variables:
+                  Env: Dev
+            Events:
+                AwsLibrarian:
+                    Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+                    Properties:
+                        Path: /slack-bot-event-handler
+                        Method: post
+
+Outputs:
+
+    AwsLibrarianApi:
+      Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/slack-bot-event-handler/"
+
+    AwsLibrarianFunction:
+      Description: "AWS Librarian Lambda Function ARN"
+      Value: !GetAtt AwsLibrarianFunction.Arn
+
+    AwsLibrarianIamRole:
+      Description: "Implicit IAM Role created for Hello World function"
+      Value: !GetAtt AwsLibrarianFunctionRole.Arn
