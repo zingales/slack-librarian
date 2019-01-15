@@ -5,9 +5,10 @@ Slack chat-bot Lambda handler.
 import os
 import logging
 import urllib
-import pymysql
 import json
 import boto3
+
+from rds_util import *
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
@@ -44,35 +45,6 @@ rds_host = params["host_url"]
 user = params["username"]
 password = params["password"]
 db_name = params["aws_librarian_db_name"]
-
-
-class BookReference(object):
-
-    def __init__(self, tuple):
-        self.id = tuple[0]
-        self.series = tuple[1]
-        self.name = tuple[2]
-        self.path = tuple[3]
-        self.dropbox_link = tuple[4]
-
-
-class RDSInterface(object):
-
-    def __init__(self, rds_host, user, password, db_name):
-        self.conn = pymysql.connect(rds_host, user=user,
-                                    passwd=password, db=db_name, connect_timeout=5)
-
-    def query_name(self, name_substring):
-        cur = self.conn.cursor()
-        sql = "select * from raw_dropbox where name like %s OR series like %s"
-
-        cur.execute(sql, [('%' + name_substring + '%'),
-                          ('%' + name_substring + '%')])
-
-        data = cur.fetchall()
-        cur.close()
-
-        return [BookReference(x) for x in data]
 
 
 try:
@@ -169,7 +141,6 @@ def lambda_handler(data, context):
         # and reverse it.
         text = slack_event["text"]
         series = formatQueryOutput(rdsi.query_name(text))
-        print(series)
 
         # Get the ID of the channel where the message was posted.
         channel_id = slack_event["channel"]
