@@ -28,6 +28,11 @@ Resources:
                     Properties:
                         Path: /slack-bot-event-handler
                         Method: post
+                AwsHoldBook:
+                    Type: Api
+                    Properties:
+                        Path: /holdthisbook
+                        Method: post
 
 Outputs:
 

@@ -7,8 +7,11 @@ import logging
 import urllib
 import json
 import boto3
+import traceback
+import re
 
 from rds_util import *
+from requests_toolbelt.multipart import decoder
 
 logger = logging.getLogger(__name__)
 logging.getLogger().setLevel(logging.INFO)
@@ -116,18 +119,8 @@ def send_slack_message(channel_id, text):
     urllib.request.urlopen(request).read()
 
 
-def lambda_handler(data, context):
-    """Handle an incoming HTTP request from a Slack chat-bot.
-    """
-
-    data = json.loads(data['body'])
-
-    if "challenge" in data:
-        return {
-            "statusCode": 200,
-            "body": data["challenge"]
-        }
-
+def handle_bot_event(body):
+    data = json.loads(body)
     # Grab the Slack event data.
     slack_event = data['event']
 
@@ -152,3 +145,73 @@ def lambda_handler(data, context):
     return {
         "statusCode": 200,
     }
+
+
+def parse_form_into_dict(body, content_type):
+    multipart_data = decoder.MultipartDecoder(
+        body.encode('utf-8'), content_type, "utf-8")
+
+    def parse_headers(headers):
+        regex = r"form-data; name=\"(.*)\""
+        match = re.search(
+            regex, headers["Content-Disposition".encode("utf-8")].decode('utf-8'))
+        if match:
+            return match.group(1)
+
+        return None
+
+    values = dict()
+    for part in multipart_data.parts:
+        # Alternatively, part.text if you want unicode
+        key = parse_headers(part.headers)
+        value = part.text
+        values[key] = value
+
+    return values
+
+
+def handle_slash_command(body, content_type):
+    form_data = parse_form_into_dict(body, content_type)
+    print(form_data)
+    return {
+        "statusCode": 500,
+        "body": "finished slash command"
+    }
+
+
+def lambda_handler(data, context):
+    """Handle an incoming HTTP request from a Slack chat-bot.
+    """
+
+    print("Data", data)
+    print(type(data))
+
+    body = data["body"]
+    path = data["path"]
+    pathParameters = data["pathParameters"]
+    queryStringParameters = data["queryStringParameters"]
+
+    print(body, path)
+
+    if "challenge" in data:
+        return {
+            "statusCode": 200,
+            "body": data["challenge"]
+        }
+
+    print("=================================")
+    try:
+        if path == '/slack-bot-event-handler':
+            return handle_bot_event(body)
+        elif path == '/holdthisbook':
+            return handle_slash_command(body, data['headers']['Content-Type'])
+        else:
+            return {
+                "statusCode": 400,
+                "body": "path <{0}> not found".format(path)
+            }
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": "Error: " + repr(e) + traceback.format_exc()
+        }
