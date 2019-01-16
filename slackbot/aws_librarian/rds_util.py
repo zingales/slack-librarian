@@ -1,4 +1,21 @@
 import pymysql
+import lambda_util
+
+params = lambda_util.load_params("/rds/devdb/")
+rds_host = params["host_url"]
+user = params["username"]
+password = params["password"]
+db_name = params["aws_librarian_db_name"]
+
+
+rdsi = None
+
+
+def getRdsi():
+    global rdsi
+    if rdsi is None:
+        rdsi = RDSInterface(rds_host, user, password, db_name)
+    return rdsi
 
 
 class BookReference(object):
