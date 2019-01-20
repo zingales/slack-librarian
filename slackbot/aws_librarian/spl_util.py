@@ -16,9 +16,10 @@ def get_spli():
     if spli is None:
         spli = SplInterface(email)
         spli.login(username, password)
+        return spli, True
 
     # TODO check if still logged in if not re-login
-    return spli
+    return spli, False
 
 
 class SplInterface(object):
@@ -72,7 +73,7 @@ class SplInterface(object):
 
 
 def get_book_id_from_url(url):
-    regex = r"https:\/\/seattle.bibliocommons.com\/item\/show\/(\d+)"
+    regex = r"https:\/\/seattle.bibliocommons.com\/item\/show\/(\d+)\S*"
     match = re.search(regex, url)
     if match:
         return match.group(1)

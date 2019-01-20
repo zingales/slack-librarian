@@ -20,7 +20,6 @@ def lambda_handler(data, context):
     """
 
     print("Data", data)
-    print(type(data))
 
     body = data["body"]
     path = data["requestContext"]["resourcePath"]
@@ -47,6 +46,7 @@ def lambda_handler(data, context):
                 "body": "path <{0}> not found".format(path)
             }
     except Exception as e:
+        logging.exception("message")
         return {
             "statusCode": 500,
             "body": "Error: " + repr(e) + traceback.format_exc()
