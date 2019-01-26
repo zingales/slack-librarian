@@ -68,18 +68,30 @@ class RDSInterface(object):
 
         print("inserting " + str(len(list_of_tuples)) + " things")
         # "INSERT INTO raw_dropbox (name, path, series, dropbox_link) VALUES (%s, %s, %s, %s)"
+        # sql = '''INSERT INTO raw_dropbox (series, name, dropbox_link, path)
+        # VALUES ("%s", "%s", "%s", "%s")
+        # ON DUPLICATE KEY UPDATE
+        # series = "%s",
+        # dropbox_link = "%s",
+        # path = "%s";'''
+
         sql = '''INSERT INTO raw_dropbox (series, name, dropbox_link, path)
-        VALUES ("%s", "%s", "%s", "%s")
-        ON DUPLICATE KEY UPDATE
-        series = "%s",
-        dropbox_link = "%s",
-        path = "%s";'''
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                series = VALUES(series),
+                dropbox_link = VALUES(dropbox_link),
+                path = VALUES(path);'''
 
-        expanded_tuples = [('' if x[0] is None else x[0], x[1], x[2], x[3], '' if x[0] is None else x[0], x[2], x[3])
-                           for x in list_of_tuples]
+        # expanded_tuples = [('' if x[0] is None else x[0], x[1], x[2], x[3], '' if x[0] is None else x[0], x[2], x[3])
+        # for x in list_of_tuples]
 
-        cur.executemany(sql, expanded_tuples)
+        # print(list_of_tuples[2])
+        # print(expanded_tuples[2])
+        # print(len(expanded_tuples[2]))
+        # print(sql % expanded_tuples[0])
 
+        cur.executemany(sql, tuples)
+        self.conn.commit()
         cur.close()
 
 
@@ -193,4 +205,5 @@ if __name__ == "__main__":
 
     print(len(tuples))
 
+    print(tuples)
     rdsi.insert_or_update(tuples)
