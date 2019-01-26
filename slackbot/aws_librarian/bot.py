@@ -23,7 +23,7 @@ def formatQueryOutput(books):
             formated_series = "Series {0}\n".format(series)
 
         for book in books_list:
-            formated_series += "\t{0} - {1}".format(
+            formated_series += "\t{0} - {1}\n".format(
                 book.name, book.dropbox_link)
         output.append(formated_series)
 
