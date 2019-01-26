@@ -66,16 +66,18 @@ class RDSInterface(object):
     def insert_or_update(self, list_of_tuples):
         cur = self.conn.cursor()
 
+        print("inserting " + str(len(list_of_tuples)) + " things")
         # "INSERT INTO raw_dropbox (name, path, series, dropbox_link) VALUES (%s, %s, %s, %s)"
-        sql = '''INSERT INTO raw_dropbox (name, path, series, dropbox_link)
-        VALUES (%s, %s, %s, %s)
+        sql = '''INSERT INTO raw_dropbox (series, name, dropbox_link, path)
+        VALUES ("%s", "%s", "%s", "%s")
         ON DUPLICATE KEY UPDATE
-        path = %s,
-        series = %s,
-        dropbox_link =%s;'''
+        series = "%s",
+        dropbox_link = "%s",
+        path = "%s";'''
 
-        expanded_tuples = [(x[0], x[1], x[2], x[3], x[1], x[2], x[3])
+        expanded_tuples = [('' if x[0] is None else x[0], x[1], x[2], x[3], '' if x[0] is None else x[0], x[2], x[3])
                            for x in list_of_tuples]
+
         cur.executemany(sql, expanded_tuples)
 
         cur.close()
@@ -183,8 +185,6 @@ if __name__ == "__main__":
                         db_name=db_params['aws_librarian_db_name'])
 
     print("rds connected")
-
-    print(rdsi.query_name("mistborn"))
 
     tuples = list()
     for path in sources:
