@@ -1,7 +1,6 @@
-FROM amazonlinux
+FROM amazonlinux:latest
 
-RUN yum update -y
-RUN yum install python3 -y
+RUN yum install python3 -y && yum -y clean all
 
 COPY requirements.txt /tmp/requirements.txt
 RUN pip3 install -r /tmp/requirements.txt

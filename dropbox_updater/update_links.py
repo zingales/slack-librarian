@@ -3,15 +3,32 @@ import os
 import json
 import dropbox
 import pymysql
+import logging
+import sys
 
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+logger = logging.getLogger('LinkUpdater')
+
+
+def my_handler(type, value, tb):
+    logger.exception("Uncaught exception: {0}".format(str(value)))
+
+
+# Install exception handler
+sys.excepthook = my_handler
+
+logger.info("SSM Client: Loading ...")
 client = boto3.client(
     'ssm',
     region_name='us-east-2',
     aws_access_key_id=os.getenv("AWS_Key_Id"),
     aws_secret_access_key=os.getenv("AWS_Secret"))
+logger.info("SSM: Complete")
 
 
 def load_params(path):
+    logger.info("SSM Client: Retrieving Params ...")
     param_details = client.get_parameters_by_path(
         Path=path,
         Recursive=False,
@@ -23,6 +40,7 @@ def load_params(path):
     for param_info in param_details["Parameters"]:
         toReturn[param_info["Name"][len(path):]] = param_info["Value"]
 
+    logger.info("SSM Client: Complete")
     return toReturn
 
 
@@ -48,8 +66,10 @@ class BookReference(object):
 class RDSInterface(object):
 
     def __init__(self, rds_host, user, password, db_name):
+        logger.info("RDS Client: Connecting..")
         self.conn = pymysql.connect(rds_host, user=user,
                                     passwd=password, db=db_name, connect_timeout=5)
+        logger.info("RDS Client: Conection complete")
 
     def query_name(self, name_substring):
         cur = self.conn.cursor()
@@ -66,7 +86,7 @@ class RDSInterface(object):
     def insert_or_update(self, list_of_tuples):
         cur = self.conn.cursor()
 
-        print("inserting " + str(len(list_of_tuples)) + " things")
+        logger.info("inserting " + str(len(list_of_tuples)) + " things")
 
         sql = '''INSERT INTO raw_dropbox (series, name, dropbox_link, path)
                 VALUES (%s, %s, %s, %s)
@@ -89,7 +109,9 @@ def remove_prefix(text, prefix):
 class DropboxInterface(object):
 
     def __init__(self, access_token):
+        logger.info("DPI Client: Connecting ...")
         self.dbx = dropbox.Dropbox(access_token)
+        logger.info("DPI Client: Complete ...")
 
     def get_direct_download_link(self, path):
         shared_link_metadata = self.dbx.sharing_create_shared_link(
@@ -169,10 +191,9 @@ class DropboxInterface(object):
 
 
 if __name__ == "__main__":
-    print("booting up")
+    logger.info("Starting Clients")
     db_access_token = load_params("/dropbox/")['access_token']
     dbi = DropboxInterface(db_access_token)
-    print("dropbox connected")
     sources = json.loads(os.getenv('AUDIOBOOK_SOURCES'))
 
     db_params = load_params("/rds/devdb/")
@@ -181,13 +202,14 @@ if __name__ == "__main__":
                         password=db_params['password'],
                         db_name=db_params['aws_librarian_db_name'])
 
-    print("rds connected")
+    logger.info("Clients Loaded")
 
     tuples = list()
     for path in sources:
         tuples.extend(dbi.get_book_tuples(path))
-        print("done getting names for " + path)
+        logger.info("done getting names for " + path)
 
-    print("total elements updated {0}".format(len(tuples)))
+    logger.info("total elements updated {0}".format(len(tuples)))
 
     rdsi.insert_or_update(tuples)
+    logger.info("insert complete")
